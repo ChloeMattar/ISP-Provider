@@ -1,0 +1,16 @@
+# .NET build output
+api/bin/
+api/obj/
+
+# Node
+web/node_modules/
+web/dist/
+
+# Editors
+.vs/
+.vscode/
+*.user
+
+# Never commit secrets
+appsettings.Development.json
+.env

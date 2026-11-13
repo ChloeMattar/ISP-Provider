@@ -1,0 +1,50 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  color: #1c2733;
+  background: #f3f5f8;
+}
+
+.app { max-width: 1150px; margin: 0 auto; padding: 0 20px 40px; }
+
+header { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; flex-wrap: wrap; gap: 12px; }
+h1 { font-size: 20px; margin: 0; color: #0b3d6b; }
+h2 { font-size: 15px; margin: 0 0 12px; }
+
+nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { background: transparent; border: 0; padding: 8px 14px; border-radius: 6px; color: #47566a; cursor: pointer; font-size: 14px; }
+.tab:hover { background: #e3e8ef; }
+.tab.active { background: #0b3d6b; color: #fff; }
+
+section { background: #fff; border: 1px solid #dde3ea; border-radius: 8px; padding: 16px; margin-bottom: 16px; overflow-x: auto; }
+
+form, .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #47566a; }
+label.check { flex-direction: row; align-items: center; gap: 6px; padding-bottom: 8px; }
+
+input, select { padding: 7px 9px; border: 1px solid #c4cdd8; border-radius: 6px; font-size: 14px; font-family: inherit; min-width: 90px; }
+input:focus, select:focus { outline: 2px solid #7fb2e0; border-color: #7fb2e0; }
+
+button { padding: 8px 14px; border: 1px solid #0b3d6b; border-radius: 6px; background: #0b3d6b; color: #fff; font-size: 13px; cursor: pointer; }
+button:hover { background: #0f4f8a; }
+button.light { background: #fff; color: #0b3d6b; }
+button.light:hover { background: #eaf1f8; }
+button.danger { background: #fff; color: #a32020; border-color: #d9a0a0; }
+button.danger:hover { background: #fbeaea; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+th { text-align: left; font-size: 12px; color: #47566a; border-bottom: 2px solid #dde3ea; padding: 8px; white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid #edf0f4; white-space: nowrap; }
+tr:hover td { background: #f8fafc; }
+td.actions { display: flex; gap: 6px; align-items: center; }
+td.actions button, td.actions select { padding: 4px 8px; font-size: 12px; }
+
+.message { padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }
+.message.ok { background: #e6f4ea; color: #1d5c2e; border: 1px solid #b7dcc1; }
+.message.error { background: #fbeaea; color: #8a1c1c; border: 1px solid #e6b8b8; }
+
+.empty { color: #7a8797; margin: 12px 0 0; }
+.over { color: #a32020; font-weight: 600; }
