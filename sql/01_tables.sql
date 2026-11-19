@@ -1,48 +1,38 @@
-/* =====================================================================
-   GIN401 Lab Project - ISP Management System
-   01_create_tables.sql : database, tables, keys, constraints
-   Run once in SSMS, top to bottom.
-   ===================================================================== */
+-- ISP Management System - tables, keys and constraints.
+-- Run once in SSMS, top to bottom.
 
 CREATE DATABASE ISPManagement;
 GO
 USE ISPManagement;
 GO
 
-/* ---------------------------------------------------------------------
-   1. Customers : the people we bill
-   --------------------------------------------------------------------- */
+-- Customers: the people we bill.
 CREATE TABLE dbo.Customers
 (
-    CustomerID INT IDENTITY(1,1) NOT NULL,   -- SQL Server generates 1, 2, 3...
-    FullName   NVARCHAR(100)     NOT NULL,   -- NVARCHAR: accepts Arabic/accents
+    CustomerID INT IDENTITY(1,1) NOT NULL,
+    FullName   NVARCHAR(100)     NOT NULL,   -- NVARCHAR so Arabic names and accents work
     Phone      VARCHAR(20)       NOT NULL,
-    Email      VARCHAR(100)      NULL,       -- optional
+    Email      VARCHAR(100)      NULL,
     City       NVARCHAR(50)      NOT NULL,
-    Status     VARCHAR(10)       NOT NULL
-        CONSTRAINT DF_Customers_Status DEFAULT 'Active',
     CreatedAt  DATETIME2(0)      NOT NULL
         CONSTRAINT DF_Customers_CreatedAt DEFAULT SYSDATETIME(),
 
     CONSTRAINT PK_Customers        PRIMARY KEY (CustomerID),
-    CONSTRAINT UQ_Customers_Phone  UNIQUE (Phone),   -- no two customers share a phone
-    CONSTRAINT CK_Customers_Status CHECK (Status IN ('Active', 'Inactive'))
+    CONSTRAINT UQ_Customers_Phone  UNIQUE (Phone)
 );
 GO
 
-/* ---------------------------------------------------------------------
-   2. Plans : the internet packages we sell
-   --------------------------------------------------------------------- */
+-- Plans: the internet packages we sell.
 CREATE TABLE dbo.Plans
 (
     PlanID            INT IDENTITY(1,1) NOT NULL,
     PlanName          NVARCHAR(50)      NOT NULL,
     SpeedMbps         INT               NOT NULL,
     QuotaGB           INT               NOT NULL,   -- monthly allowance
-    MonthlyPrice      DECIMAL(10,2)     NOT NULL,   -- DECIMAL: exact, never FLOAT for money
-    OveragePricePerGB DECIMAL(10,2)     NOT NULL,   -- charged for each GB above the quota
+    MonthlyPrice      DECIMAL(10,2)     NOT NULL,   -- DECIMAL, not FLOAT: money has to be exact
+    OveragePricePerGB DECIMAL(10,2)     NOT NULL,   -- price of each GB above the quota
     IsActive          BIT               NOT NULL
-        CONSTRAINT DF_Plans_IsActive DEFAULT 1,     -- 0 = no longer sold, but kept for history
+        CONSTRAINT DF_Plans_IsActive DEFAULT 1,     -- 0 = not sold anymore, kept for history
 
     CONSTRAINT PK_Plans          PRIMARY KEY (PlanID),
     CONSTRAINT UQ_Plans_PlanName UNIQUE (PlanName),
@@ -53,16 +43,14 @@ CREATE TABLE dbo.Plans
 );
 GO
 
-/* ---------------------------------------------------------------------
-   3. Subscriptions : one customer on one plan
-   --------------------------------------------------------------------- */
+-- Subscriptions: one customer on one plan.
 CREATE TABLE dbo.Subscriptions
 (
     SubscriptionID INT IDENTITY(1,1) NOT NULL,
     CustomerID     INT               NOT NULL,
     PlanID         INT               NOT NULL,
     StartDate      DATE              NOT NULL,
-    EndDate        DATE              NULL,       -- NULL = still running
+    EndDate        DATE              NULL,       -- stays NULL while the subscription is running
     Status         VARCHAR(10)       NOT NULL
         CONSTRAINT DF_Subscriptions_Status DEFAULT 'Active',
 
@@ -72,26 +60,23 @@ CREATE TABLE dbo.Subscriptions
     CONSTRAINT FK_Subscriptions_Plans
         FOREIGN KEY (PlanID) REFERENCES dbo.Plans (PlanID),
     CONSTRAINT CK_Subscriptions_Status
-        CHECK (Status IN ('Active', 'Suspended', 'Cancelled')),
+        CHECK (Status IN ('Active', 'Cancelled')),
     CONSTRAINT CK_Subscriptions_Dates
         CHECK (EndDate IS NULL OR EndDate >= StartDate)
 );
 GO
 
--- Business rule: a customer has at most ONE open subscription.
--- A filtered unique index only looks at the rows matching the WHERE,
--- so a customer can have many Cancelled rows (history) but only one open row.
+-- A customer can only have one active subscription at a time.
+-- The index only covers rows where Status = 'Active', so old cancelled
+-- subscriptions don't count against the rule.
 CREATE UNIQUE INDEX UX_Subscriptions_OneOpenPerCustomer
     ON dbo.Subscriptions (CustomerID)
-    WHERE Status IN ('Active', 'Suspended');
+    WHERE Status = 'Active';
 GO
 
-/* ---------------------------------------------------------------------
-   4. UsageRecords : daily consumption  (THE LARGE TABLE, ~720,000 rows)
-   One row = one subscription on one day.
-   No index on (SubscriptionID, UsageDate) yet: we add it in the
-   performance step so we can show the plan before and after.
-   --------------------------------------------------------------------- */
+-- UsageRecords: daily usage, one row per subscription per day.
+-- This is the big table (~360,000 rows). Its indexes are created later in
+-- 05_performance.sql, so the execution plans can be compared before and after.
 CREATE TABLE dbo.UsageRecords
 (
     UsageID        INT IDENTITY(1,1) NOT NULL,
@@ -108,9 +93,7 @@ CREATE TABLE dbo.UsageRecords
 );
 GO
 
-/* ---------------------------------------------------------------------
-   5. Invoices : one bill per subscription per month
-   --------------------------------------------------------------------- */
+-- Invoices: one bill per subscription per month.
 CREATE TABLE dbo.Invoices
 (
     InvoiceID      INT IDENTITY(1,1) NOT NULL,
@@ -129,19 +112,15 @@ CREATE TABLE dbo.Invoices
     CONSTRAINT PK_Invoices PRIMARY KEY (InvoiceID),
     CONSTRAINT FK_Invoices_Subscriptions
         FOREIGN KEY (SubscriptionID) REFERENCES dbo.Subscriptions (SubscriptionID),
-    -- Business rule: a subscription cannot be billed twice for the same month.
-    CONSTRAINT UQ_Invoices_Subscription_Period UNIQUE (SubscriptionID, PeriodStart),
+    CONSTRAINT UQ_Invoices_Subscription_Period UNIQUE (SubscriptionID, PeriodStart),  -- never bill a month twice
     CONSTRAINT CK_Invoices_Period     CHECK (PeriodEnd > PeriodStart),
     CONSTRAINT CK_Invoices_Amount     CHECK (Amount >= 0),
-    -- Business rule: we can never collect more than the invoice amount.
-    CONSTRAINT CK_Invoices_AmountPaid CHECK (AmountPaid >= 0 AND AmountPaid <= Amount),
+    CONSTRAINT CK_Invoices_AmountPaid CHECK (AmountPaid >= 0 AND AmountPaid <= Amount),  -- never collect more than the bill
     CONSTRAINT CK_Invoices_Status     CHECK (Status IN ('Unpaid', 'Partial', 'Paid'))
 );
 GO
 
-/* ---------------------------------------------------------------------
-   6. Payments : money received against an invoice
-   --------------------------------------------------------------------- */
+-- Payments: money received for an invoice.
 CREATE TABLE dbo.Payments
 (
     PaymentID INT IDENTITY(1,1) NOT NULL,
@@ -159,18 +138,14 @@ CREATE TABLE dbo.Payments
 );
 GO
 
-/* ---------------------------------------------------------------------
-   7. SubscriptionAudit : history of status / plan changes
-   Nobody inserts here directly: a trigger on Subscriptions fills it.
-   --------------------------------------------------------------------- */
+-- SubscriptionAudit: history of status changes.
+-- Only the trigger on Subscriptions writes here.
 CREATE TABLE dbo.SubscriptionAudit
 (
     AuditID        INT IDENTITY(1,1) NOT NULL,
     SubscriptionID INT               NOT NULL,
     OldStatus      VARCHAR(10)       NOT NULL,
     NewStatus      VARCHAR(10)       NOT NULL,
-    OldPlanID      INT               NOT NULL,
-    NewPlanID      INT               NOT NULL,
     ChangedAt      DATETIME2(0)      NOT NULL
         CONSTRAINT DF_SubscriptionAudit_ChangedAt DEFAULT SYSDATETIME(),
 

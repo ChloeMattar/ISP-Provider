@@ -3,13 +3,10 @@ using Microsoft.Data.SqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers = the classes in the Controllers folder (one per screen).
 builder.Services.AddControllers();
-
-// One shared Db object (our ADO.NET helper) given to every controller.
 builder.Services.AddSingleton<Db>();
 
-// CORS: the React page (localhost:3000) is allowed to call this API (localhost:5000).
+// Let the React app on port 3000 call this API.
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
         policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
@@ -18,9 +15,8 @@ var app = builder.Build();
 
 app.UseCors();
 
-// One place that turns SQL Server errors into a clean JSON answer.
-// Every request passes through here; if the database raised an error
-// we catch it and reply { "error": "..." } instead of crashing.
+// Turns SQL Server errors into a JSON { "error": "..." } reply,
+// so the page can show a readable message instead of the request crashing.
 app.Use(async (context, next) =>
 {
     try
@@ -32,18 +28,19 @@ app.Use(async (context, next) =>
         Console.WriteLine($"SQL error {ex.Number}: {ex.Message}");
 
         string message;
-        int statusCode = 400;                       // 400 = the request was wrong
+        int statusCode = 400;
 
-        if (ex.Number >= 50000)                     // our own THROW 5xxxx in the procedures
+        if (ex.Number >= 50000)                            // our own THROW in a procedure
             message = ex.Message;
-        else if (ex.Number == 2601 || ex.Number == 2627)   // UNIQUE index / constraint
+        else if (ex.Number == 2601 || ex.Number == 2627)   // unique index / constraint
             message = "This value already exists (duplicate).";
-        else if (ex.Number == 547)                  // CHECK or FOREIGN KEY constraint
+        else if (ex.Number == 547)                         // CHECK or foreign key
             message = "The value breaks a rule of the database (constraint).";
         else
         {
-            message = "Database error.";            // never show internal details to the user
-            statusCode = 500;                       // 500 = the server has a problem
+            // anything else: don't leak database details to the user
+            message = "Database error.";
+            statusCode = 500;
         }
 
         context.Response.StatusCode = statusCode;

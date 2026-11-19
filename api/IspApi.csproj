@@ -2,16 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <!-- Lets the app run on a newer .NET runtime if .NET 8 is not installed -->
+    <!-- run on a newer .NET if .NET 8 isn't installed -->
     <RollForward>LatestMajor</RollForward>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- Identifies this project's private "user secrets" file (where the DB password lives) -->
+    <!-- where "dotnet user-secrets" keeps the connection string -->
     <UserSecretsId>isp-management-gin401</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- ADO.NET provider for SQL Server: SqlConnection, SqlCommand, SqlDataReader -->
+    <!-- ADO.NET for SQL Server: SqlConnection, SqlCommand, SqlDataReader -->
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
   </ItemGroup>
 

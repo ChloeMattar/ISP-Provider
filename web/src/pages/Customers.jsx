@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import { api, money } from "../api";
-import DataTable from "../DataTable";
-import Message from "../Message";
+import { api, money, DataTable, Message } from "../shared";
 
-const emptyForm = { FullName: "", Phone: "", Email: "", City: "", Status: "Active" };
+const emptyForm = { FullName: "", Phone: "", Email: "", City: "" };
 
 const columns = [
   { key: "CustomerID", label: "ID" },
@@ -11,7 +9,6 @@ const columns = [
   { key: "Phone", label: "Phone" },
   { key: "Email", label: "Email" },
   { key: "City", label: "City" },
-  { key: "Status", label: "Status" },
   { key: "Balance", label: "Owes ($)", format: money },
 ];
 
@@ -19,10 +16,9 @@ export default function Customers() {
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState(null); // null = we are adding a new customer
+  const [editingId, setEditingId] = useState(null); // null while adding a new customer
   const [message, setMessage] = useState(null);
 
-  // Ask the API for the customers matching the search box
   async function load() {
     try {
       setRows(await api("/customers?search=" + encodeURIComponent(search)));
@@ -31,18 +27,16 @@ export default function Customers() {
     }
   }
 
-  // Load the list once, when the page opens
   useEffect(() => {
     load();
   }, []);
 
   function onSearch(event) {
-    event.preventDefault(); // do not reload the whole page
+    event.preventDefault(); // stop the browser from reloading the page
     setMessage(null);
     load();
   }
 
-  // Copy one field of the form into the state
   function change(event) {
     setForm({ ...form, [event.target.name]: event.target.value });
   }
@@ -72,7 +66,6 @@ export default function Customers() {
       Phone: row.Phone,
       Email: row.Email || "",
       City: row.City,
-      Status: row.Status,
     });
   }
 
@@ -104,15 +97,6 @@ export default function Customers() {
             City
             <input name="City" value={form.City} onChange={change} required maxLength={50} />
           </label>
-          {editingId && (
-            <label>
-              Status
-              <select name="Status" value={form.Status} onChange={change}>
-                <option>Active</option>
-                <option>Inactive</option>
-              </select>
-            </label>
-          )}
           <button type="submit">{editingId ? "Save" : "Add"}</button>
           {editingId && (
             <button type="button" className="light" onClick={cancelEdit}>

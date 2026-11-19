@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, money, day } from "../api";
-import DataTable from "../DataTable";
-import Message from "../Message";
+import { api, money, day, DataTable, Message } from "../shared";
 
 const columns = [
   { key: "SubscriptionID", label: "ID" },
@@ -19,19 +17,26 @@ export default function Subscriptions() {
   const [plans, setPlans] = useState([]);
   const [filterCustomer, setFilterCustomer] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterPlan, setFilterPlan] = useState("");
   const [newCustomer, setNewCustomer] = useState("");
   const [newPlan, setNewPlan] = useState("");
   const [message, setMessage] = useState(null);
 
   async function load() {
     try {
-      setRows(await api("/subscriptions?customerId=" + filterCustomer + "&status=" + filterStatus));
+      setRows(
+        await api(
+          "/subscriptions?customerName=" + encodeURIComponent(filterCustomer) +
+            "&status=" + filterStatus +
+            "&planId=" + filterPlan
+        )
+      );
     } catch (error) {
       setMessage({ error: true, text: error.message });
     }
   }
 
-  // When the page opens: the list, and the plans for the drop-down lists
+  // on load: the list, plus the plans for the drop-downs
   useEffect(() => {
     load();
     api("/plans")
@@ -60,57 +65,29 @@ export default function Subscriptions() {
     }
   }
 
-  async function setStatus(row, newStatus) {
+  async function cancel(row) {
+    const sure = window.confirm(
+      "Cancel subscription " + row.SubscriptionID + " of " + row.FullName + "? This cannot be undone."
+    );
+    if (!sure) return;
+
     try {
-      await api("/subscriptions/" + row.SubscriptionID + "/status", "PUT", { NewStatus: newStatus });
-      setMessage({ text: "Subscription " + row.SubscriptionID + " is now " + newStatus + "." });
+      await api("/subscriptions/" + row.SubscriptionID + "/cancel", "PUT");
+      setMessage({ text: "Subscription " + row.SubscriptionID + " is now Cancelled." });
       load();
     } catch (error) {
       setMessage({ error: true, text: error.message });
     }
   }
 
-  async function changePlan(row, planId) {
-    if (!planId) return;
-    try {
-      await api("/subscriptions/" + row.SubscriptionID + "/plan", "PUT", { NewPlanID: Number(planId) });
-      setMessage({ text: "Plan of subscription " + row.SubscriptionID + " changed." });
-      load();
-    } catch (error) {
-      setMessage({ error: true, text: error.message });
-    }
-  }
-
-  // Buttons shown on each row depend on the current status
+  // only active subscriptions get a Cancel button
   function actions(row) {
     if (row.Status === "Cancelled") return null;
 
     return (
-      <>
-        {row.Status === "Active" && (
-          <button className="light" onClick={() => setStatus(row, "Suspended")}>
-            Suspend
-          </button>
-        )}
-        {row.Status === "Suspended" && (
-          <button className="light" onClick={() => setStatus(row, "Active")}>
-            Resume
-          </button>
-        )}
-        <button className="danger" onClick={() => setStatus(row, "Cancelled")}>
-          Cancel
-        </button>
-        <select value="" onChange={(event) => changePlan(row, event.target.value)}>
-          <option value="">Change plan...</option>
-          {plans
-            .filter((plan) => plan.PlanID !== row.PlanID)
-            .map((plan) => (
-              <option key={plan.PlanID} value={plan.PlanID}>
-                {plan.PlanName}
-              </option>
-            ))}
-        </select>
-      </>
+      <button className="danger" onClick={() => cancel(row)}>
+        Cancel
+      </button>
     );
   }
 
@@ -144,15 +121,25 @@ export default function Subscriptions() {
         <h2>Subscriptions</h2>
         <form onSubmit={onFilter}>
           <label>
-            Customer ID
-            <input type="number" value={filterCustomer} onChange={(event) => setFilterCustomer(event.target.value)} />
+            Customer name
+            <input value={filterCustomer} onChange={(event) => setFilterCustomer(event.target.value)} />
+          </label>
+          <label>
+            Plan
+            <select value={filterPlan} onChange={(event) => setFilterPlan(event.target.value)}>
+              <option value="">All</option>
+              {plans.map((plan) => (
+                <option key={plan.PlanID} value={plan.PlanID}>
+                  {plan.PlanName}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Status
             <select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}>
               <option value="">All</option>
               <option>Active</option>
-              <option>Suspended</option>
               <option>Cancelled</option>
             </select>
           </label>

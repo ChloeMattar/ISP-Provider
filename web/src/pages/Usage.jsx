@@ -1,19 +1,22 @@
 import { useState } from "react";
-import { api, day } from "../api";
-import DataTable from "../DataTable";
-import Message from "../Message";
+import { api, money, day, DataTable, Message } from "../shared";
 
-const summaryColumns = [
-  { key: "MonthStart", label: "Month", format: (value) => day(value).slice(0, 7) },
+const monthlyColumns = [
+  { key: "FullName", label: "Customer" },
+  { key: "PlanName", label: "Plan" },
   { key: "DownloadGB", label: "Download (GB)" },
   { key: "UploadGB", label: "Upload (GB)" },
   {
     key: "TotalGB",
     label: "Total (GB)",
-    // red when the customer went over the quota of the plan
+    // shown in red when over the plan's quota
     format: (value, row) => <span className={value > row.QuotaGB ? "over" : ""}>{value}</span>,
   },
   { key: "QuotaGB", label: "Quota (GB)" },
+  // invoice columns are null until the month is billed
+  { key: "InvoiceAmount", label: "Invoice ($)", format: (value) => (value == null ? "Not billed yet" : money(value)) },
+  { key: "InvoicePaid", label: "Paid ($)", format: (value) => (value == null ? "" : money(value)) },
+  { key: "InvoiceStatus", label: "Invoice status" },
 ];
 
 const dailyColumns = [
@@ -22,66 +25,70 @@ const dailyColumns = [
   { key: "UploadMB", label: "Upload (MB)" },
 ];
 
-const topColumns = [
+const reportColumns = [
   { key: "SubscriptionID", label: "Subscription" },
   { key: "FullName", label: "Customer" },
   { key: "PlanName", label: "Plan" },
-  { key: "QuotaGB", label: "Quota (GB)" },
-  { key: "TotalGB", label: "Used (GB)" },
+  { key: "DaysCounted", label: "Days" },
+  { key: "DownloadGB", label: "Download (GB)" },
+  { key: "UploadGB", label: "Upload (GB)" },
+  { key: "TotalGB", label: "Total (GB)" },
 ];
 
 export default function Usage() {
+  // one subscription, one month
   const [subscriptionId, setSubscriptionId] = useState("509");
-  const [from, setFrom] = useState("2026-10-01");
-  const [to, setTo] = useState("2026-10-31");
-  const [summary, setSummary] = useState([]);
+  const [year, setYear] = useState(2026);
+  const [month, setMonth] = useState(9);
+  const [monthly, setMonthly] = useState([]);
   const [daily, setDaily] = useState([]);
 
-  const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(10);
-  const [top, setTop] = useState([]);
+  // report for all subscriptions between two dates
+  const [reportFrom, setReportFrom] = useState("2026-10-01");
+  const [reportTo, setReportTo] = useState("2026-10-31");
+  const [report, setReport] = useState([]);
 
-  const [newUsage, setNewUsage] = useState({ SubscriptionID: "", UsageDate: "", DownloadMB: "", UploadMB: "" });
   const [message, setMessage] = useState(null);
 
   async function loadSubscription(event) {
     event.preventDefault();
     setMessage(null);
+
+    // First and last day of the month, e.g. "2026-09-01" and "2026-09-30".
+    // Day 0 of the next month is the last day of this one.
+    const twoDigitMonth = String(month).padStart(2, "0");
+    const lastDay = new Date(year, month, 0).getDate();
+    const from = year + "-" + twoDigitMonth + "-01";
+    const to = year + "-" + twoDigitMonth + "-" + lastDay;
+
     try {
-      setSummary(await api("/usage/summary/" + subscriptionId));
+      setMonthly(await api("/usage/monthly/" + subscriptionId + "?year=" + year + "&month=" + month));
       setDaily(await api("/usage/daily/" + subscriptionId + "?from=" + from + "&to=" + to));
     } catch (error) {
+      setMonthly([]);
+      setDaily([]);
       setMessage({ error: true, text: error.message });
     }
   }
 
-  async function loadTop(event) {
+  async function loadReport(event) {
     event.preventDefault();
     setMessage(null);
     try {
-      setTop(await api("/usage/top?year=" + year + "&month=" + month + "&top=10"));
+      setReport(await api("/usage/report?from=" + reportFrom + "&to=" + reportTo));
     } catch (error) {
       setMessage({ error: true, text: error.message });
     }
   }
 
-  function changeNewUsage(event) {
-    setNewUsage({ ...newUsage, [event.target.name]: event.target.value });
-  }
-
-  async function addUsage(event) {
-    event.preventDefault();
-    try {
-      await api("/usage", "POST", {
-        SubscriptionID: Number(newUsage.SubscriptionID),
-        UsageDate: newUsage.UsageDate,
-        DownloadMB: Number(newUsage.DownloadMB),
-        UploadMB: Number(newUsage.UploadMB),
-      });
-      setMessage({ text: "Usage saved." });
-    } catch (error) {
-      setMessage({ error: true, text: error.message });
-    }
+  // totals for the whole report
+  let totalDownload = 0;
+  let totalUpload = 0;
+  let totalAll = 0;
+  for (const row of report) {
+    totalDownload += row.DownloadGB;
+    totalUpload += row.UploadGB;
+    totalAll += row.TotalGB;
   }
 
   return (
@@ -89,32 +96,15 @@ export default function Usage() {
       <Message message={message} />
 
       <section>
-        <h2>Usage of one subscription</h2>
+        <h2>Monthly usage of one subscription</h2>
         <form onSubmit={loadSubscription}>
           <label>
             Subscription ID
             <input type="number" value={subscriptionId} onChange={(event) => setSubscriptionId(event.target.value)} required />
           </label>
           <label>
-            Daily detail from
-            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} required />
-          </label>
-          <label>
-            to
-            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} required />
-          </label>
-          <button type="submit">Show</button>
-        </form>
-        {summary.length > 0 && <DataTable columns={summaryColumns} rows={summary} />}
-        {daily.length > 0 && <DataTable columns={dailyColumns} rows={daily} />}
-      </section>
-
-      <section>
-        <h2>Top 10 consumers of a month</h2>
-        <form onSubmit={loadTop}>
-          <label>
             Year
-            <input type="number" value={year} onChange={(event) => setYear(event.target.value)} required />
+            <input type="number" min="2000" max="2100" value={year} onChange={(event) => setYear(event.target.value)} required />
           </label>
           <label>
             Month
@@ -122,30 +112,31 @@ export default function Usage() {
           </label>
           <button type="submit">Show</button>
         </form>
-        {top.length > 0 && <DataTable columns={topColumns} rows={top} />}
+        {monthly.length > 0 && <DataTable columns={monthlyColumns} rows={monthly} />}
+        {monthly.length > 0 && <DataTable columns={dailyColumns} rows={daily} />}
       </section>
 
       <section>
-        <h2>Record usage for one day</h2>
-        <form onSubmit={addUsage}>
+        <h2>Usage report between two dates (all subscriptions)</h2>
+        <form onSubmit={loadReport}>
           <label>
-            Subscription ID
-            <input name="SubscriptionID" type="number" value={newUsage.SubscriptionID} onChange={changeNewUsage} required />
+            From
+            <input type="date" value={reportFrom} onChange={(event) => setReportFrom(event.target.value)} required />
           </label>
           <label>
-            Day
-            <input name="UsageDate" type="date" value={newUsage.UsageDate} onChange={changeNewUsage} required />
+            To
+            <input type="date" value={reportTo} onChange={(event) => setReportTo(event.target.value)} required />
           </label>
-          <label>
-            Download (MB)
-            <input name="DownloadMB" type="number" value={newUsage.DownloadMB} onChange={changeNewUsage} required />
-          </label>
-          <label>
-            Upload (MB)
-            <input name="UploadMB" type="number" value={newUsage.UploadMB} onChange={changeNewUsage} required />
-          </label>
-          <button type="submit">Save</button>
+          <button type="submit">Show report</button>
         </form>
+        {report.length > 0 && (
+          <p className="total">
+            Total for the period: <strong>{report.length}</strong> subscriptions, download{" "}
+            <strong>{totalDownload.toFixed(2)} GB</strong>, upload <strong>{totalUpload.toFixed(2)} GB</strong>,
+            total <strong>{totalAll.toFixed(2)} GB</strong>
+          </p>
+        )}
+        {report.length > 0 && <DataTable columns={reportColumns} rows={report} />}
       </section>
     </>
   );

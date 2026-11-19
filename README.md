@@ -9,20 +9,76 @@ React (localhost:3000)  ->  C# Web API with ADO.NET (localhost:5000)  ->  SQL Se
 
 The browser never talks to the database. The API only calls stored procedures, with parameters.
 
-## What is in this folder
+## The files
 
-| Folder | Content |
+**Database: 6 scripts, run in this order**
+
+| File | Content |
 |---|---|
-| `sql/01_create_tables.sql` | Database, 7 tables, keys and constraints |
-| `sql/02_functions.sql` | 3 scalar functions (overage charge, monthly usage, customer balance) |
-| `sql/03_procedures.sql` | 18 stored procedures, including the two transactions |
-| `sql/04_triggers.sql` | Audit trigger on subscriptions, protection trigger on payments |
-| `sql/05_insert_data.sql` | Test data: 2,000 customers, about 720,000 usage rows, invoices, payments |
-| `sql/06_security.sql` | The least-privilege login used by the application |
-| `sql/07_performance.sql` | Indexes on the large table, with before / after queries |
-| `sql/08_tests.sql` | Tests that print PASS / FAIL, and the two-users test |
-| `api/` | ASP.NET Core Web API (C#, ADO.NET) |
-| `web/` | React frontend (Vite) |
+| `sql/01_tables.sql` | The database, the 7 tables, keys and constraints |
+| `sql/02_logic.sql` | Part 1: 2 functions. Part 2: 14 procedures. Part 3: 2 triggers |
+| `sql/03_data.sql` | Test data: 1,000 customers, about 360,000 usage rows, invoices, payments |
+| `sql/04_security.sql` | The least-privilege login used by the application |
+| `sql/05_performance.sql` | Indexes on the large table, with before / after queries |
+| `sql/06_tests.sql` | Tests that print PASS / FAIL, and the two-users test |
+
+**API: 3 C# files**
+
+| File | Content |
+|---|---|
+| `api/Program.cs` | Starts the server, allows the React page (CORS), turns SQL errors into JSON |
+| `api/Db.cs` | The only ADO.NET code: connection, command, parameters, reader |
+| `api/IspController.cs` | Every URL of the API; each one calls one stored procedure |
+
+`IspApi.csproj`, `appsettings.json` and `Properties/launchSettings.json` are project settings (package, port 5000), not logic.
+
+**Frontend: 7 React files**
+
+| File | Content |
+|---|---|
+| `web/src/main.jsx` | Starts React |
+| `web/src/App.jsx` | The five tabs |
+| `web/src/shared.jsx` | `api()` (the call to the Web API), the table and the message box used by every page |
+| `web/src/pages/*.jsx` | One file per tab: Customers, Plans, Subscriptions, Billing, Usage |
+
+## Where is what
+
+**From a button to the database**
+
+| Screen and action | Page (`web/src/pages`) | URL | Method in `IspController.cs` | Procedure in `02_logic.sql` |
+|---|---|---|---|---|
+| Customers: search | `Customers.jsx` | `GET /api/customers` | `SearchCustomers` | `usp_SearchCustomers` |
+| Customers: add | `Customers.jsx` | `POST /api/customers` | `AddCustomer` | `usp_AddCustomer` |
+| Customers: edit | `Customers.jsx` | `PUT /api/customers/{id}` | `UpdateCustomer` | `usp_UpdateCustomer` |
+| Plans: list | `Plans.jsx` | `GET /api/plans` | `GetPlans` | `usp_GetPlans` |
+| Subscriptions: list / filter | `Subscriptions.jsx` | `GET /api/subscriptions` | `GetSubscriptions` | `usp_GetSubscriptions` |
+| Subscriptions: activate | `Subscriptions.jsx` | `POST /api/subscriptions` | `ActivateSubscription` | `usp_ActivateSubscription` |
+| Subscriptions: cancel | `Subscriptions.jsx` | `PUT /api/subscriptions/{id}/cancel` | `CancelSubscription` | `usp_CancelSubscription` |
+| Billing: list invoices | `Billing.jsx` | `GET /api/invoices` | `GetInvoices` | `usp_GetInvoices` |
+| Billing: generate a month | `Billing.jsx` | `POST /api/invoices/generate` | `GenerateInvoices` | `usp_GenerateMonthlyInvoices` |
+| Billing: payments of an invoice | `Billing.jsx` | `GET /api/invoices/{id}/payments` | `GetPayments` | `usp_GetPayments` |
+| Billing: record a payment | `Billing.jsx` | `POST /api/invoices/{id}/payments` | `RecordPayment` | `usp_RecordPayment` |
+| Usage: one subscription, one month | `Usage.jsx` | `GET /api/usage/monthly/{id}` | `GetMonthlyUsage` | `usp_GetMonthlyUsage` |
+| Usage: daily detail of that month | `Usage.jsx` | `GET /api/usage/daily/{id}` | `GetDailyUsage` | `usp_GetDailyUsage` |
+| Usage: report between two dates | `Usage.jsx` | `GET /api/usage/report` | `GetUsageReport` | `usp_GetUsageReport` |
+
+**Each grading requirement**
+
+| Requirement | Where |
+|---|---|
+| Tables, keys, constraints | `01_tables.sql` |
+| Table above 100,000 rows | `UsageRecords`, filled in `03_data.sql` section 4 |
+| Functions | `02_logic.sql` part 1: `fn_OverageCharge`, `fn_CustomerBalance` |
+| Procedures | `02_logic.sql` part 2 |
+| Triggers | `02_logic.sql` part 3: `trg_Subscriptions_Audit`, `trg_Payments_Protect` |
+| Transactions with TRY...CATCH | `02_logic.sql`: `usp_RecordPayment`, `usp_GenerateMonthlyInvoices` |
+| Two users at once | the `WITH (UPDLOCK)` line in `usp_RecordPayment`; demonstrated by test 10 in `06_tests.sql` |
+| Indexes and execution plans | `05_performance.sql` |
+| Least privilege | `04_security.sql` (login `isp_app`, `GRANT EXECUTE` only) |
+| No password in the code | `Db.cs` constructor reads the connection string from user secrets |
+| Parameters (no SQL injection) | `Db.Param` in `Db.cs`, used by every method of `IspController.cs` |
+| ADO.NET | `Db.cs`, method `RunProcedureAsync` |
+| Error messages shown to the user | `THROW` in the procedures, then the `catch (SqlException)` block in `Program.cs`, then `Message` in `shared.jsx` |
 
 ## Requirements
 
@@ -36,14 +92,12 @@ The browser never talks to the database. The API only calls stored procedures, w
 
 Open each script in SSMS and press F5, **in this order**:
 
-1. `01_create_tables.sql`
-2. `02_functions.sql`
-3. `03_procedures.sql`
-4. `04_triggers.sql`
-5. `05_insert_data.sql` (takes less than a minute; the last grid shows the row counts)
-6. `06_security.sql` (first replace `Replace_This_Passw0rd!` with your own password)
-7. `07_performance.sql` (for the report, run it block by block: see the instructions at its top)
-8. `08_tests.sql` (optional: every line of the Messages tab should say PASS)
+1. `01_tables.sql`
+2. `02_logic.sql`
+3. `03_data.sql` (takes less than a minute; the last grid shows the row counts)
+4. `04_security.sql` (first replace `Replace_This_Passw0rd!` with your own password)
+5. `05_performance.sql` (for the report, run it block by block: see the instructions at its top)
+6. `06_tests.sql` (optional: every line of the Messages tab should say PASS)
 
 To start again from zero: `USE master; DROP DATABASE ISPManagement; DROP LOGIN isp_app;` then run the scripts again.
 
@@ -55,13 +109,19 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;
 dotnet run
 ```
 
-- Replace `YOUR_PASSWORD` with the password you chose in `06_security.sql`.
+- Replace `YOUR_PASSWORD` with the password you chose in `04_security.sql`.
 - If your SQL Server is a named instance, replace `localhost` with its name, for example `localhost\SQLEXPRESS`
   (it is the "Server name" you type in the SSMS connect dialog).
 - The `user-secrets` command is needed only once. It stores the connection string in your Windows
   user profile, outside the project folder, so the password is never in the code or in git.
 
 Check: open http://localhost:5000/api/plans in the browser. You should see the 6 plans as JSON.
+
+### Shortcut: `run.bat`
+
+Once the database exists and the `dotnet user-secrets set` command above has been run once,
+you can double-click `run.bat` instead of doing steps 2 and 3 by hand: it starts the API and the
+React page in two windows and opens http://localhost:3000.
 
 ### 3. Frontend (second terminal)
 
@@ -80,7 +140,7 @@ Open http://localhost:3000.
 | `Login failed for user 'isp_app'` | SQL Server accepts only Windows logins by default. In SSMS: right-click the server > Properties > Security > "SQL Server and Windows Authentication mode", then restart the SQL Server service. Also check the password in the user-secrets command. |
 | The API cannot find the server | Use the exact server name from SSMS in the connection string (for example `localhost\SQLEXPRESS`). |
 | `Connection string 'DefaultConnection' is missing` | Run the `dotnet user-secrets set ...` command from inside the `api` folder. |
-| Port 5000 or 3000 already used | Close the other program, or change the port in `api/Properties/launchSettings.json` / `web/vite.config.js` (and the two matching addresses in `api/Program.cs` and `web/src/api.js`). |
+| Port 5000 or 3000 already used | Close the other program, or change the port in `api/Properties/launchSettings.json` / `web/vite.config.js` (and the two matching addresses in `api/Program.cs` and `web/src/shared.jsx`). |
 | The page says "Cannot reach the API" | Start the API first (`dotnet run`) and keep that terminal open. |
 
 ## Business rules (and where each one is enforced)
@@ -96,42 +156,20 @@ Open http://localhost:3000.
 | A month can be billed only when it is finished | `usp_GenerateMonthlyInvoices` |
 | Payments never exceed the invoice balance | `usp_RecordPayment` (UPDLOCK) + `CK_Invoices_AmountPaid` |
 | Payments are never modified or deleted | trigger `trg_Payments_Protect` |
-| Every status / plan change is logged | trigger `trg_Subscriptions_Audit` |
-| Customers, plans and subscriptions with history are never deleted | foreign keys (no cascade); plans use `IsActive`, subscriptions use `Cancelled` |
-| A cancelled subscription is final | `usp_SetSubscriptionStatus` |
+| Every status change is logged | trigger `trg_Subscriptions_Audit` |
+| Customers, plans and subscriptions with history are never deleted | foreign keys (no cascade); subscriptions use `Cancelled` |
+| A cancelled subscription is final | `usp_CancelSubscription` (the `AND Status = 'Active'` of its UPDATE) |
+| A text longer than its column is refused, never silently cut | `usp_AddCustomer`, `usp_UpdateCustomer` (error 50012) |
+| `%` and `_` in a search box are ordinary characters | `CHARINDEX` in `usp_SearchCustomers`, `usp_GetSubscriptions` |
 
 ## Demo (2 minutes)
 
 1. **Customers**: search `khoury`, then type `x' OR 1=1 --` in the search box: no rows, the input is treated as data.
-2. **Subscriptions**: suspend a subscription, then show the new row in `SubscriptionAudit` (trigger).
-3. **Billing**: generate October 2026 (about 1,920 invoices created from the usage table);
+2. **Subscriptions**: cancel a subscription, then show the new row in `SubscriptionAudit` (trigger).
+3. **Billing**: generate October 2026 (about 960 invoices created from the usage table);
    click Generate again: 0 created. Pay an invoice; try to pay more than the balance: refused.
-4. **Usage**: subscription 509, monthly totals against the quota (over-quota months are red), top 10 consumers.
-5. **Two users at once**: test 10 of `08_tests.sql`, in two SSMS windows.
-
-## Performance results (fill in with your own numbers from `07_performance.sql`)
-
-| Query | Before: operator / logical reads / time | After: operator / logical reads / time |
-|---|---|---|
-| 1. One subscription, one month | | |
-| 2. Totals per subscription for one month | | |
-| 3. `YEAR()`/`MONTH()` filter vs date range | | |
-
-## Security summary
-
-- **Parameters**: every value goes to SQL Server as a typed `SqlParameter` of a stored procedure call (`api/Db.cs`). No SQL text is built from user input.
-- **Least privilege**: the app connects as `isp_app`, which has only `EXECUTE` on the `dbo` schema and no permission on the tables.
-- **No password in the code**: the connection string is in .NET user secrets, outside the repository.
-
-## Version control
-
-```
-git init
-git add .
-git commit -m "ISP Management System"
-```
-
-`.gitignore` already excludes `node_modules`, `bin`, `obj` and `dist`.
+4. **Usage**: subscription 509, September 2026: totals against the quota (red when over), its invoice, the daily detail; then the usage report for a date range.
+5. **Two users at once**: test 10 of `06_tests.sql`, in two SSMS windows.
 
 ## AI usage
 

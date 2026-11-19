@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, money, day } from "../api";
-import DataTable from "../DataTable";
-import Message from "../Message";
+import { api, money, day, DataTable, Message } from "../shared";
 
 const invoiceColumns = [
   { key: "InvoiceID", label: "Invoice" },
@@ -22,7 +20,7 @@ const paymentColumns = [
   { key: "PaidAt", label: "Date", format: day },
 ];
 
-// Default month to bill = last month (the current month is not finished)
+// Default to last month, since the current one can't be billed yet
 const lastMonth = new Date();
 lastMonth.setDate(1);
 lastMonth.setMonth(lastMonth.getMonth() - 1);
@@ -33,7 +31,7 @@ export default function Billing() {
   const [filterCustomer, setFilterCustomer] = useState("");
   const [year, setYear] = useState(lastMonth.getFullYear());
   const [month, setMonth] = useState(lastMonth.getMonth() + 1);
-  const [selected, setSelected] = useState(null); // the invoice being paid
+  const [selected, setSelected] = useState(null); // invoice open in the payment panel
   const [payments, setPayments] = useState([]);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("Cash");
@@ -68,7 +66,6 @@ export default function Billing() {
     }
   }
 
-  // Open the payment panel for one invoice
   async function select(row) {
     setSelected(row);
     setAmount(row.Balance);
