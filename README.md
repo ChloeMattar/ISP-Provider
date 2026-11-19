@@ -62,9 +62,9 @@ The browser never talks to the database. The API only calls stored procedures, w
 | Usage: daily detail of that month | `Usage.jsx` | `GET /api/usage/daily/{id}` | `GetDailyUsage` | `usp_GetDailyUsage` |
 | Usage: report between two dates | `Usage.jsx` | `GET /api/usage/report` | `GetUsageReport` | `usp_GetUsageReport` |
 
-**Each grading requirement**
+**Where each database feature is**
 
-| Requirement | Where |
+| Feature | Where |
 |---|---|
 | Tables, keys, constraints | `01_tables.sql` |
 | Table above 100,000 rows | `UsageRecords`, filled in `03_data.sql` section 4 |
@@ -80,7 +80,7 @@ The browser never talks to the database. The API only calls stored procedures, w
 | ADO.NET | `Db.cs`, method `RunProcedureAsync` |
 | Error messages shown to the user | `THROW` in the procedures, then the `catch (SqlException)` block in `Program.cs`, then `Message` in `shared.jsx` |
 
-## Requirements
+## Prerequisites
 
 - SQL Server 2017 or newer (Express or Developer edition is fine) and SSMS
 - .NET SDK 8 or newer (`dotnet --version`)
@@ -173,5 +173,4 @@ Open http://localhost:3000.
 
 ## AI usage
 
-Claude (Anthropic) was used to help design the schema and to write and explain the SQL scripts,
-the C# API and the React pages. Describe here, in your own words, what you used it for and what you changed.
+Claude (Anthropic) was used as an AI assistance tool to help prepare the report and PowerPoint presentation, generate SQL scripts for populating tables with test data, and assist in testing and verifying the scripts. All generated scripts were reviewed and executed by us, and we independently collected the execution plans, screenshots, and performance measurements. We also reviewed the generated content and ensured that we understood the code and could explain and defend the work submitted.
