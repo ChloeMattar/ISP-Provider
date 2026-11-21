@@ -90,9 +90,9 @@ CREATE OR ALTER PROCEDURE dbo.usp_AddCustomer
 AS
 BEGIN
     SET NOCOUNT ON;
-
+    -- LTRIM and RTRIM removes space from left and right 
     IF LTRIM(RTRIM(@FullName)) = '' OR LTRIM(RTRIM(@Phone)) = '' OR LTRIM(RTRIM(@City)) = ''
-        THROW 50010, 'Name, phone and city are required.', 1;
+        THROW 50010, 'Name, phone and city are required.', 1; --custom error number
 
     -- same limits as the columns of dbo.Customers
     IF LEN(@FullName) > 100 OR LEN(@Phone) > 20 OR LEN(@Email) > 100 OR LEN(@City) > 50
