@@ -25,4 +25,4 @@ GO
 CREATE USER isp_app FOR LOGIN isp_app;
 GO
 GRANT EXECUTE ON SCHEMA::dbo TO isp_app;
-GO  --go
+GO  --Go
