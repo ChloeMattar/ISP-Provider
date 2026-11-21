@@ -12,11 +12,11 @@
 -- procedures - no SELECT * FROM Customers, no DROP TABLE.
 --
 -- Change the password below before running. The app gets it through
--- "dotnet user-secrets" (see README.md), never from the code.
+-- "dotnet user-secrets" , never from the code.
 
 USE master;
 GO
-CREATE LOGIN isp_app WITH PASSWORD = 'Replace_This_Passw0rd!';   -- change this
+CREATE LOGIN isp_app WITH PASSWORD = 'Replace_This_Passw0rd!';   
 GO
 
 USE ISPManagement;

@@ -68,7 +68,7 @@ export function DataTable({ columns, rows, actions }) {
   );
 }
 
-// Green box for success, red for errors.
+
 export function Message({ message }) {
   if (!message) return null;
   return <div className={message.error ? "message error" : "message ok"}>{message.text}</div>;

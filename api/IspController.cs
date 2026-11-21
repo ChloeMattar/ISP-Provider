@@ -17,7 +17,7 @@ public class IspController : ControllerBase
         _db = db;
     }
 
-    // ----- Customers -----
+    // Customers 
 
     // GET /api/customers?search=khoury
     [HttpGet("customers")]
@@ -59,7 +59,7 @@ public class IspController : ControllerBase
         return Ok(rows[0]);
     }
 
-    // ----- Plans -----
+    //  Plans 
 
     // GET /api/plans
     [HttpGet("plans")]
@@ -69,7 +69,7 @@ public class IspController : ControllerBase
         return Ok(rows);
     }
 
-    // ----- Subscriptions -----
+    //  Subscriptions 
 
     // GET /api/subscriptions?customerName=khoury&status=Active&planId=2  (all optional)
     [HttpGet("subscriptions")]
@@ -105,7 +105,7 @@ public class IspController : ControllerBase
         return Ok(rows[0]);
     }
 
-    // ----- Billing -----
+    //  Billing 
 
     // GET /api/invoices?onlyUnpaid=true&customerId=12
     [HttpGet("invoices")]
@@ -151,7 +151,7 @@ public class IspController : ControllerBase
         return Ok(rows[0]);
     }
 
-    // ----- Usage -----
+    // Usage 
 
     // GET /api/usage/monthly/509?year=2026&month=9
     [HttpGet("usage/monthly/{subscriptionId}")]

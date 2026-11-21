@@ -11,7 +11,7 @@ public class Db
 
     public Db(IConfiguration configuration)
     {
-        // Comes from "dotnet user-secrets", not from the code or appsettings.json.
+        // Comes from "dotnet user-secrets".
         _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException(
                 "Connection string 'DefaultConnection' is missing. See README.md (dotnet user-secrets).");
