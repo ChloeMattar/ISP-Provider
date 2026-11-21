@@ -1,5 +1,4 @@
 -- ISP Management System - tables, keys and constraints.
--- Run once in SSMS, top to bottom.
 
 CREATE DATABASE ISPManagement;
 GO

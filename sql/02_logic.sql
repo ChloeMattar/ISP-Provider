@@ -13,7 +13,7 @@ SET ANSI_NULLS ON;
 GO
 
 
--- ===================== Functions =====================
+-- Functions 
 
 -- Extra charge when a customer goes over the plan's quota.
 -- e.g. quota 100 GB, used 112.5 GB at 0.50/GB -> 12.5 * 0.50 = 6.25
@@ -56,7 +56,7 @@ END;
 GO
 
 
--- ===================== Customers =====================
+--  Customers 
 
 -- Search by name (anywhere in it) or by phone (from the start).
 -- No search text = list everyone.
@@ -108,7 +108,7 @@ GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_UpdateCustomer
     @CustomerID INT,
-    @FullName   NVARCHAR(200),      -- wider than the columns, same reason as usp_AddCustomer
+    @FullName   NVARCHAR(200),      
     @Phone      VARCHAR(200),
     @Email      VARCHAR(200) = NULL,
     @City       NVARCHAR(200)
@@ -137,7 +137,7 @@ END;
 GO
 
 
--- ===================== Plans =====================
+--  Plans 
 
 CREATE OR ALTER PROCEDURE dbo.usp_GetPlans
 AS
@@ -151,7 +151,7 @@ END;
 GO
 
 
--- ===================== Subscriptions =====================
+--  Subscriptions 
 
 -- Every filter is optional: NULL means "don't filter on this".
 CREATE OR ALTER PROCEDURE dbo.usp_GetSubscriptions
@@ -234,7 +234,7 @@ END;
 GO
 
 
--- ===================== Billing =====================
+--  Billing 
 
 CREATE OR ALTER PROCEDURE dbo.usp_GetInvoices
     @OnlyUnpaid BIT = 1,        -- 1 = only invoices that still have money due
@@ -398,7 +398,7 @@ END;
 GO
 
 
--- ===================== Usage =====================
+--  Usage 
 
 -- Key query 1: daily usage of one subscription between two dates.
 CREATE OR ALTER PROCEDURE dbo.usp_GetDailyUsage
@@ -495,7 +495,7 @@ END;
 GO
 
 
--- ===================== Triggers =====================
+--  Triggers 
 
 -- Logs every status change on Subscriptions.
 -- "deleted" holds the rows before the update, "inserted" the rows after.

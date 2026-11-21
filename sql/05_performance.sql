@@ -1,14 +1,5 @@
 -- ISP Management System - indexes on UsageRecords, with before/after queries.
---
--- How to use it:
---   1. In SSMS turn on "Include Actual Execution Plan" (Ctrl+M).
---   2. Run one numbered block at a time (select it, F5).
---   3. Check the Execution plan tab (scan or seek?) and the Messages tab
---      (logical reads and elapsed time).
---
--- Scan = SQL Server reads the whole table or index.
--- Seek = it jumps straight to the rows it needs.
--- Logical reads = 8 KB pages read; fewer is faster.
+
 
 USE ISPManagement;
 GO
@@ -17,7 +8,7 @@ SET STATISTICS TIME ON;
 GO
 
 
--- ----- Key query 1: one subscription's daily usage for one month (usp_GetDailyUsage) -----
+--  Key query 1: one subscription's daily usage for one month (usp_GetDailyUsage) 
 
 -- [1] Before: the table is only sorted by UsageID, so SQL Server has to read
 --     every row to find the 31 it wants (clustered index scan).
@@ -47,7 +38,7 @@ WHERE SubscriptionID = 509
 GO
 
 
--- ----- Key query 2: total usage per subscription for one month (usp_GetUsageReport, billing) -----
+--  Key query 2: total usage per subscription for one month (usp_GetUsageReport, billing) 
 
 -- [4] Before: this one filters on the date only. The index from [2] starts
 --     with SubscriptionID, so it can't help; SQL Server scans all 12 months.
@@ -77,8 +68,7 @@ ORDER BY TotalGB DESC;
 GO
 
 
--- ----- Key query 3: the same filter written two ways -----
--- A good index doesn't help if the column is wrapped in a function.
+--  Key query 3: the same filter written two ways 
 
 -- [7] Bad: YEAR() and MONTH() have to be computed for every row first,
 --     so the index order is useless (index scan).
@@ -97,7 +87,7 @@ WHERE UsageDate >= '2026-03-01'
 GO
 
 
--- ----- Two small indexes on foreign keys (SQL Server doesn't create these by itself) -----
+--  Two small indexes on foreign keys (SQL Server doesn't create these by itself) 
 -- usp_GetPayments looks up payments by InvoiceID;
 -- fn_CustomerBalance and usp_GetSubscriptions look up subscriptions by CustomerID.
 CREATE NONCLUSTERED INDEX IX_Payments_InvoiceID

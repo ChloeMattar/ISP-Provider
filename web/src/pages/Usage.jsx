@@ -54,7 +54,7 @@ export default function Usage() {
     event.preventDefault();
     setMessage(null);
 
-    // First and last day of the month, e.g. "2026-09-01" and "2026-09-30".
+    // First and last day of the month.
     // Day 0 of the next month is the last day of this one.
     const twoDigitMonth = String(month).padStart(2, "0");
     const lastDay = new Date(year, month, 0).getDate();
