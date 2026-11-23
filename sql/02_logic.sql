@@ -94,7 +94,7 @@ BEGIN
     IF LTRIM(RTRIM(@FullName)) = '' OR LTRIM(RTRIM(@Phone)) = '' OR LTRIM(RTRIM(@City)) = ''
         THROW 50010, 'Name, phone and city are required.', 1; --custom error number
 
-    -- same limits as the columns of dbo.Customers
+    -- same limits as the columns of dbo.Customers .
     IF LEN(@FullName) > 100 OR LEN(@Phone) > 20 OR LEN(@Email) > 100 OR LEN(@City) > 50
         THROW 50012, 'Too long. Maximum: name 100, phone 20, email 100, city 50 characters.', 1;
 
